@@ -8,9 +8,10 @@ import InvoiceScreen from './src/screens/InvoiceScreen';
 import ReportScreen from './src/screens/ReportScreen';
 import AssetScreen from './src/screens/AssetScreen';
 import BudgetScreen from './src/screens/BudgetScreen';
+import ImportScreen from './src/screens/ImportScreen';
 import { COLORS } from './src/constants';
 
-type TabKey = 'home' | 'invoice' | 'report' | 'asset' | 'budget';
+type TabKey = 'home' | 'invoice' | 'report' | 'asset' | 'budget' | 'import';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabKey>('home');
@@ -22,12 +23,14 @@ export default function App() {
       case 'report': return <ReportScreen />;
       case 'asset': return <AssetScreen />;
       case 'budget': return <BudgetScreen />;
+      case 'import': return <ImportScreen />;
       default: return <HomeScreen />;
     }
   };
 
   const tabs = [
     { key: 'home', emoji: '🏠', label: '记账' },
+    { key: 'import', emoji: '📥', label: '导入' },
     { key: 'invoice', emoji: '📷', label: '发票' },
     { key: 'report', emoji: '📊', label: '报表' },
     { key: 'asset', emoji: '🏦', label: '资产' },
@@ -84,10 +87,10 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   tabEmoji: {
-    fontSize: 22,
+    fontSize: 20,
   },
   tabText: {
-    fontSize: 11,
+    fontSize: 10,
     color: COLORS.textSecondary,
     marginTop: 2,
   },
