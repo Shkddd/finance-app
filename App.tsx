@@ -6,9 +6,11 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import HomeScreen from './src/screens/HomeScreen';
 import InvoiceScreen from './src/screens/InvoiceScreen';
 import ReportScreen from './src/screens/ReportScreen';
+import AssetScreen from './src/screens/AssetScreen';
+import BudgetScreen from './src/screens/BudgetScreen';
 import { COLORS } from './src/constants';
 
-type TabKey = 'home' | 'invoice' | 'report';
+type TabKey = 'home' | 'invoice' | 'report' | 'asset' | 'budget';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabKey>('home');
@@ -18,9 +20,19 @@ export default function App() {
       case 'home': return <HomeScreen />;
       case 'invoice': return <InvoiceScreen />;
       case 'report': return <ReportScreen />;
+      case 'asset': return <AssetScreen />;
+      case 'budget': return <BudgetScreen />;
       default: return <HomeScreen />;
     }
   };
+
+  const tabs = [
+    { key: 'home', emoji: '🏠', label: '记账' },
+    { key: 'invoice', emoji: '📷', label: '发票' },
+    { key: 'report', emoji: '📊', label: '报表' },
+    { key: 'asset', emoji: '🏦', label: '资产' },
+    { key: 'budget', emoji: '📋', label: '预算' },
+  ] as const;
 
   return (
     <SafeAreaProvider>
@@ -32,33 +44,18 @@ export default function App() {
         
         {/* 底部导航 */}
         <View style={styles.tabBar}>
-          <TouchableOpacity 
-            style={styles.tabItem}
-            onPress={() => setActiveTab('home')}
-          >
-            <Text style={styles.tabEmoji}>🏠</Text>
-            <Text style={[styles.tabText, activeTab === 'home' && styles.tabTextActive]}>
-              记账
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.tabItem}
-            onPress={() => setActiveTab('invoice')}
-          >
-            <Text style={styles.tabEmoji}>📷</Text>
-            <Text style={[styles.tabText, activeTab === 'invoice' && styles.tabTextActive]}>
-              发票
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.tabItem}
-            onPress={() => setActiveTab('report')}
-          >
-            <Text style={styles.tabEmoji}>📊</Text>
-            <Text style={[styles.tabText, activeTab === 'report' && styles.tabTextActive]}>
-              报表
-            </Text>
-          </TouchableOpacity>
+          {tabs.map(tab => (
+            <TouchableOpacity 
+              key={tab.key}
+              style={styles.tabItem}
+              onPress={() => setActiveTab(tab.key as TabKey)}
+            >
+              <Text style={styles.tabEmoji}>{tab.emoji}</Text>
+              <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
     </SafeAreaProvider>
@@ -87,12 +84,12 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   tabEmoji: {
-    fontSize: 24,
+    fontSize: 22,
   },
   tabText: {
-    fontSize: 12,
+    fontSize: 11,
     color: COLORS.textSecondary,
-    marginTop: 4,
+    marginTop: 2,
   },
   tabTextActive: {
     color: COLORS.primary,
