@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,7 +9,10 @@ import {
   Modal,
   FlatList,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { COLORS, CATEGORIES } from '../constants';
+
+const STORAGE_KEY = '@finance_app_data';
 
 // 类型
 interface Transaction {
@@ -23,16 +26,44 @@ interface Transaction {
 
 const HomeScreen: React.FC = () => {
   const [balance, setBalance] = useState(10000);
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    { id: '1', amount: 5000, category: 'salary', note: '月工资', date: '2026-03-01', type: 'income' },
-    { id: '2', amount: 128, category: 'food', note: '午餐', date: '2026-03-02', type: 'expense' },
-    { id: '3', amount: 45, category: 'transport', note: '地铁', date: '2026-03-02', type: 'expense' },
-  ]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newAmount, setNewAmount] = useState('');
   const [newNote, setNewNote] = useState('');
   const [newCategory, setNewCategory] = useState('food');
   const [newType, setNewType] = useState<'income' | 'expense'>('expense');
+
+  // 加载数据
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // 保存数据
+  const saveData = async (newTransactions: Transaction[], newBalance: number) => {
+    try {
+      const data = {
+        transactions: newTransactions,
+        balance: newBalance,
+      };
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.error('保存失败:', e);
+    }
+  };
+
+  // 加载数据
+  const loadData = async () => {
+    try {
+      const dataStr = await AsyncStorage.getItem(STORAGE_KEY);
+      if (dataStr) {
+        const data = JSON.parse(dataStr);
+        setTransactions(data.transactions || []);
+        setBalance(data.balance || 10000);
+      }
+    } catch (e) {
+      console.error('加载失败:', e);
+    }
+  };
 
   // 计算
   const income = transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
@@ -51,15 +82,34 @@ const HomeScreen: React.FC = () => {
       type: newType,
     };
     
-    setTransactions([transaction, ...transactions]);
-    setBalance(newType === 'income' 
+    const newTransactions = [transaction, ...transactions];
+    const newBalance = newType === 'income' 
       ? balance + parseFloat(newAmount) 
-      : balance - parseFloat(newAmount)
-    );
+      : balance - parseFloat(newAmount);
+    
+    setTransactions(newTransactions);
+    setBalance(newBalance);
+    saveData(newTransactions, newBalance);
     
     setNewAmount('');
     setNewNote('');
     setShowAddModal(false);
+  };
+
+  // 删除记录
+  const deleteTransaction = (id: string, amount: number, type: 'income' | 'expense') => {
+    const newTransactions = transactions.filter(t => t.id !== id);
+    const newBalance = type === 'income' ? balance - amount : balance + amount;
+    setTransactions(newTransactions);
+    setBalance(newBalance);
+    saveData(newTransactions, newBalance);
+  };
+
+  // 清空数据
+  const clearAllData = async () => {
+    await AsyncStorage.removeItem(STORAGE_KEY);
+    setTransactions([]);
+    setBalance(10000);
   };
 
   // 获取分类信息
@@ -118,16 +168,24 @@ const HomeScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
+      {/* 调试按钮 */}
+      <TouchableOpacity style={styles.clearBtn} onPress={clearAllData}>
+        <Text style={styles.clearBtnText}>🗑️ 清空所有数据</Text>
+      </TouchableOpacity>
+
       {/* 交易记录 */}
       <View style={styles.transactions}>
-        <Text style={styles.sectionTitle}>📝 最近记录</Text>
+        <Text style={styles.sectionTitle}>📝 最近记录 ({transactions.length}笔)</Text>
         <FlatList
           data={transactions}
           keyExtractor={item => item.id}
           renderItem={({ item }) => {
             const cat = getCategoryInfo(item.category);
             return (
-              <View style={styles.transactionItem}>
+              <TouchableOpacity 
+                style={styles.transactionItem}
+                onLongPress={() => deleteTransaction(item.id, item.amount, item.type)}
+              >
                 <View style={styles.transactionLeft}>
                   <Text style={styles.transactionEmoji}>{cat.emoji}</Text>
                   <View>
@@ -141,9 +199,12 @@ const HomeScreen: React.FC = () => {
                 ]}>
                   {item.type === 'income' ? '+' : '-'}¥{item.amount}
                 </Text>
-              </View>
+              </TouchableOpacity>
             );
           }}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>暂无记录，点击上方按钮记账</Text>
+          }
         />
       </View>
 
@@ -223,9 +284,12 @@ const styles = StyleSheet.create({
   statValue: { fontSize: 16, fontWeight: 'bold', marginTop: 4 },
   
   quickActions: { flexDirection: 'row', justifyContent: 'space-around', padding: 15, backgroundColor: '#fff', marginTop: -10, borderRadius: 16, marginHorizontal: 10 },
-  actionBtn: { alignItems: 'center', padding: 12, borderRadius: 12, width: 75 },
+  actionBtn: { alignItems: 'center12, borderRadius', padding: : 12, width: 75 },
   actionEmoji: { fontSize: 24 },
   actionText: { fontSize: 12, marginTop: 4, color: '#fff', fontWeight: '600' },
+  
+  clearBtn: { backgroundColor: '#FFEBEE', marginHorizontal: 16, marginTop: 8, padding: 10, borderRadius: 8, alignItems: 'center' },
+  clearBtnText: { color: COLORS.error, fontSize: 12 },
   
   transactions: { flex: 1, padding: 16 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
@@ -235,6 +299,7 @@ const styles = StyleSheet.create({
   transactionNote: { fontSize: 15, fontWeight: '600' },
   transactionDate: { fontSize: 12, color: COLORS.textSecondary, marginTop: 2 },
   transactionAmount: { fontSize: 16, fontWeight: 'bold' },
+  emptyText: { textAlign: 'center', color: COLORS.textSecondary, marginTop: 40 },
   
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40 },
